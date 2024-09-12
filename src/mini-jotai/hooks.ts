@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useReducer } from "react";
+import {
+  useCallback,
+  useDebugValue,
+  useEffect,
+  useReducer,
+  useState
+} from "react";
 import { ReadableAtom, WritableAtom } from "./atom";
 import { createStore } from "./store";
 
@@ -53,3 +59,22 @@ export const useAtom = <Value, Args extends unknown[], Result>(
 ) => {
   return [useAtomValue(atom), useSetAtom(atom)];
 };
+
+const stateToPrintable = ([state, atoms]: [Store, ReadableAtom<unknown>[]]) => {
+  atoms.reduce((res, atom) => {
+    const atomState = state.get(atom);
+    res[atom.debugLabel] = { value: atomState };
+    return res;
+  }, {} as Record<string, unknown>);
+};
+
+export function useAtomsDebugValue() {
+  const store = useStore();
+
+  const [atoms, setAtoms] = useState<ReadableAtom<unknown>[]>([]);
+  useEffect(() => {
+    setAtoms(Array.from(store.get_mounted_atoms()));
+  }, [store]);
+
+  useDebugValue([store, atoms], stateToPrintable);
+}

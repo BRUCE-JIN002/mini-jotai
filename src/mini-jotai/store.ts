@@ -17,6 +17,8 @@ type Mounted = {
   t: Dependents;
 };
 
+type MountedAtoms = Set<AnyReadableAtom>;
+
 const isEqualAtomValue = <Value>(a: AtomState<Value>, b: AtomState<Value>) => {
   return "v" in a && "v" in b && Object.is(a.v, b.v);
 };
@@ -32,9 +34,14 @@ const returnAtomValue = <Value>(atomState: AtomState<Value>): Value => {
 };
 
 export const createStore = () => {
+  // 维护atom和状态的映射
   const atomStateMap = new WeakMap<AnyReadableAtom, AtomState>();
+  // 维护订阅atom，当sub atom时会将atom加入到mountedMap中
   const mountedMap = new WeakMap<AnyReadableAtom, Mounted>();
+  // 维护需要更新状态的atom的集合
   const pendingMap = new Map<AnyReadableAtom, AtomState | undefined>();
+  // 用于给 Jotai DevTools 使用
+  const mountedAtoms: MountedAtoms = new Set();
 
   const getAtomState = <Value>(atom: ReadableAtom<Value>) => {
     return atomStateMap.get(atom) as AtomState<Value> | undefined;
@@ -217,6 +224,8 @@ export const createStore = () => {
     };
     // 将atom加入到mountedMap中
     mountedMap.set(atom, mounted);
+    // 将atom加入到mountedMap中
+    mountedAtoms.add(atom);
     return mounted;
   };
 
@@ -249,6 +258,7 @@ export const createStore = () => {
   return {
     get: readAtom,
     set: writeAtom,
-    sub: subscribeAtom
+    sub: subscribeAtom,
+    get_mounted_atoms: () => mountedAtoms.values() // 用于给 Jotai DevTools 使用
   };
 };
